@@ -1,17 +1,15 @@
 package concurrent;
 
-import com.sun.org.slf4j.internal.Logger;
-import com.sun.org.slf4j.internal.LoggerFactory;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import utils.MessageUtils;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-
+@Slf4j
 public class Server implements Runnable{
-    private static final Logger logger = LoggerFactory.getLogger(Server.class);
     ServerSocket serverSocket;
     volatile boolean keepProcessing = true;
 
@@ -22,13 +20,13 @@ public class Server implements Runnable{
 
     @Override
     public void run() {
-        logger.debug("Server Starting");
+        log.info("Server Starting");
 
         while (keepProcessing) {
             try {
-                logger.debug("accepting client");
+                log.info("accepting client");
                 Socket socket = serverSocket.accept();
-                logger.debug("got client");
+                log.info("got client");
                 process(socket);
             } catch (Exception exception) {
                 handle(exception);
@@ -49,24 +47,17 @@ public class Server implements Runnable{
 
     private void process(Socket socket) {
         if (socket == null) return;
-
-        try {
-            logger.debug("Server: getting message");
-            String message = MessageUtils.getMessage(socket);
-            Thread.sleep(1000);
-            logger.debug("Server: sending reply: {}", message);
-            MessageUtils.sendMessage(socket, "Processed: " + message);
-            logger.debug("Server: send");
-            closeIgnoringException(socket);
-        } catch (Exception exception) {
-            exception.printStackTrace();
-
-            if (exception instanceof InterruptedException) {
-                logger.error("Interrupted!!");
-                // Restore interrupted state...
-                Thread.currentThread().interrupt();
+        Runnable clientHandler = () -> {
+            try {
+                String message = MessageUtils.getMessage(socket);
+                MessageUtils.sendMessage(socket, "Processed: " + message);
+                closeIgnoringException(socket);
+            } catch (Exception exception) {
+                exception.printStackTrace();
             }
-        }
+        };
+        Thread clientConnection = new Thread(clientHandler);
+        clientConnection.start();
     }
     @SneakyThrows(IOException.class)
     private void closeIgnoringException(Socket socket) {

@@ -39,17 +39,26 @@ class ClientTest {
 
     @Test
     @Timeout(10000)
-    public void shouldRunInUnder10Secound() throws Exception {
-        Thread[] threads = new Thread[10];
+    void shouldRunInUnder10Secound() throws Exception {
+        Thread[] threads = createThreads();
+        startAllTHreads(threads);
+        waitForAllTHreadsTOFinish(threads);
 
+    }
+    private Thread[] createThreads() {
+        return new Thread[10];
+    }
+
+    private void waitForAllTHreadsTOFinish(Thread[] threads) throws InterruptedException {
+        for (Thread thread : threads) {
+            thread.join();
+        }
+    }
+
+    private void startAllTHreads(Thread[] threads) {
         for (int clientNumber = 0; clientNumber < threads.length; clientNumber++) {
             threads[clientNumber] = new Thread(new TrivialClient(clientNumber));
             threads[clientNumber].start();
         }
-
-        for (int clientNumber = 0; clientNumber < threads.length; clientNumber++) {
-            threads[clientNumber].join();
-        }
-
     }
 }
